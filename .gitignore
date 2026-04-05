@@ -1,0 +1,18 @@
+data/
+reference/
+results/
+logs/
+*.bam
+*.bai
+*.vcf
+*.gz
+# Ignore heavy tool folders
+tools/
+minimap2/
+
+# Ignore giant genomic data
+data/
+reference/
+
+# Ignore temporary logs
+logs/*.log
