@@ -41,3 +41,22 @@ Project setup in progress
 
 ### Current Stage: Variant Calling (GATK4)
 - **Status:** Initiating HaplotypeCaller for HG00276.
+
+## Pipeline Execution Details
+
+### Standardizing BAM Headers
+To ensure GATK compatibility, we inject Read Group (RG) information:
+```bash
+samtools addreplacerg -r "@RG\tID:1\tPL:PACBIO\tLB:lib1\tSM:HG00276\tPU:1" \
+  -o data/HG00276_final.bam data/HG00276_sorted.bam
+```
+
+### Variant Calling (GATK4)
+We utilize GATK HaplotypeCaller in GVCF mode to identify germline variants:
+```bash
+gatk --java-options "-Xmx12g" HaplotypeCaller \
+  -R reference/hg38.fa \
+  -I data/HG00276_final.bam \
+  -O results/HG00276_raw_variants.g.vcf \
+  -ERC GVCF
+```
