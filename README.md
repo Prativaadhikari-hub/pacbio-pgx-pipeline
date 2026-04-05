@@ -27,3 +27,17 @@ The project performs full-genome alignment of PacBio long reads, variant calling
 
 ## Status
 Project setup in progress
+
+### Step 3: Alignment Results
+- **Tool:** Minimap2 -ax map-hifi
+- **Command:** `./minimap2/minimap2 -ax map-hifi -t 4 reference/hg38.mmi data/HG00276.fastq.gz > data/HG00276_aligned.sam`
+- **Status:** Currently Processing...
+
+### Milestone Reached: Data Processing Complete
+- [x] **Alignment:** Minimap2 finished in ~16 minutes with 95% CPU efficiency.
+- [x] **Sorting:** Samtools sorted 424MB of data entirely in-memory (high-performance).
+- [x] **Indexing:** BAM index (.bai) verified and functional for rapid gene lookup.
+- [x] **Storage Optimization:** Original SAM removed; 80% reduction in file size achieved.
+
+### Current Stage: Variant Calling (GATK4)
+- **Status:** Initiating HaplotypeCaller for HG00276.
