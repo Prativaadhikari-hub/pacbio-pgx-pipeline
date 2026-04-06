@@ -18,3 +18,13 @@ This project implements a full-genome analysis pipeline for PacBio HiFi long-rea
 ## Key Findings
 - Successfully resolved variants in the 49 target PGx genes.
 - Leveraged PacBio long reads to traverse complex genomic regions (low mapping quality regions in Illumina).
+
+## Pipeline Outputs
+| File Name | Format | Description |
+| :--- | :--- | :--- |
+| **HG00276_final.bam** | BAM | Labeled alignment (SM:HG00276) ready for IGV. |
+| **HG00276_raw_variants.g.vcf** | GVCF | Raw genomic variant calls (349 MB). |
+| **HG00276_final_variants.vcf** | VCF | High-quality variant calls (99,001 total variants). |
+
+## Summary of Results
+The pipeline successfully identified variants within the 49 target PGx genes. By using PacBio long reads, we achieved high-confidence mapping in the **CYP2D6** and **CYP2C19** loci, which are traditionally difficult to resolve due to high sequence homology with neighboring pseudogenes.
