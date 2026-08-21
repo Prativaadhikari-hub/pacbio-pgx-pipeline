@@ -23,3 +23,13 @@ samtools index ../data/HG00276_final.bam
   -R ../reference/hg38.fa \
   -V ../results/HG00276_raw_variants.g.vcf \
   -O ../results/HG00276_final_variants.vcf
+
+# 5. Functional Variant Annotation with ANNOVAR
+table_annovar.pl ../results/HG00276_final_variants.vcf humandb/ \
+  -buildver hg38 \
+  -out ../results/HG00276_annotated \
+  -remove \
+  -protocol refGene,clinvar,dbnsfp42a \
+  -operation g,f,f \
+  -nastring . \
+  -vcfinput
