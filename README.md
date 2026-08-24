@@ -1,79 +1,261 @@
-# PacBio Long-Read Pharmacogenomics (PGx) Pipeline
+# PacBio HiFi Full-Genome Pharmacogenomics Variant Analysis
 
-## Project Overview
-This repository implements an end-to-end bioinformatics pipeline for PacBio HiFi long-read sequencing data, specifically targeting the Twist Alliance Long-Read PGx panel. The workflow resolves **49 key pharmacogenomic genes** (including *CYP2D6* and *CYP2C19*) that are traditionally difficult to analyze using short-read sequencing due to high sequence homology, pseudogenes, and structural variation.
+## Overview
 
----
+This project implements a reproducible bioinformatics workflow for analyzing **PacBio HiFi long-read sequencing data** generated using the **Twist Alliance Long-Read Pharmacogenomics (PGx) Panel**.
 
-## Tools & Technologies
-* **Alignment:** Minimap2 (`map-hifi` preset)
-* **Data Processing:** Samtools (Read Group injection & BAM indexing)
-* **Variant Calling:** GATK4 HaplotypeCaller & GenotypeGVCFs (v4.6.2.0)
-* **Functional Annotation:** ANNOVAR (`table_annovar.pl` integrating RefGene, ClinVar, and dbNSFP)
-* **Visual Validation:** Integrative Genomics Viewer (IGV)
-* **Target Panel:** 49 PGx genes in "dark/complex" genomic regions
+The project extends a UC San Diego Genomic Sequencing Technologies course exercise that initially focused on chromosome 10 and the pharmacogenes **CYP2C9** and **CYP2C19**. Following the instructor's recommendation to extend the analysis beyond chromosome 10, PacBio HiFi reads were aligned against the **complete GRCh38/hg38 human reference genome**, followed by germline variant calling, functional annotation, and focused analysis of selected pharmacogenes.
+
+The project demonstrates an end-to-end long-read bioinformatics workflow using **Minimap2, SAMtools, GATK4, ANNOVAR, IGV, Bash, and Linux**.
 
 ---
 
-## Pipeline Workflow
-FASTQ (PacBio HiFi)
-│
-▼
-[Minimap2] ──> SAM ──> [Samtools] ──> Sorted & Labeled BAM
-│
-▼
-[GATK4 HaplotypeCaller] ──> GVCF
-│
-▼
-[GATK4 GenotypeGVCFs] ──> Raw VCF
-│
-▼
-[ANNOVAR Annotation] ──> Annotated VCF
-│
-▼
-[IGV Inspection] ──> Visual Validation
+## Project Objectives
 
+The goals of this project were to:
 
-1. **Alignment:** Align raw FASTQ reads to GRCh38/hg38 reference using `minimap2 -ax map-hifi`.
-2. **Read Group Standardization:** Inject `@RG` headers via `samtools addreplacerg` for downstream GATK compatibility.
-3. **Genomic Variant Calling:** Run GATK4 `HaplotypeCaller` in `-ERC GVCF` mode to evaluate variant sites.
-4. **Joint Genotyping:** Execute `GenotypeGVCFs` to generate finalized, multi-allele VCF calls.
-5. **Functional Annotation:** Annotate variants using ANNOVAR (`table_annovar.pl`) with `refGene`, `clinvar`, and `dbnsfp42a` databases to capture gene structure and clinical significance.
-6. **Visual Inspection:** Verify complex variants and phasing in IGV across high-priority loci (*CYP2D6*).
+1. Align PacBio HiFi reads to the complete hg38 human reference genome.
+2. Process and index long-read genomic alignments.
+3. Perform germline SNV and indel calling with GATK4.
+4. Functionally annotate variants using ANNOVAR.
+5. Extract and summarize variants associated with selected pharmacogenes.
+6. Inspect a complex pharmacogenomic locus using IGV.
+7. Build a reproducible command-line workflow suitable for further PGx analysis.
+
+---
+
+## Dataset
+
+**Sample:** HG00276
+**Sequencing:** PacBio HiFi / CCS
+**Dataset:** Twist Alliance Long-Read Pharmacogenomics Panel
+**Reference genome:** GRCh38 / hg38
+
+The sequencing panel targets **49 pharmacogenes**. The current downstream results summary focuses on nine CYP genes:
+
+* CYP1A2
+* CYP2B6
+* CYP2C8
+* CYP2C9
+* CYP2C19
+* CYP2D6
+* CYP3A4
+* CYP3A5
+* CYP4F2
+
+Large FASTQ, reference genome, BAM, and complete genome-wide variant files are not included in this repository because of their size.
+
+Dataset metadata is provided in `data/sample_info.txt`.
+
+---
+
+## Analysis Workflow
+
+```text
+PacBio HiFi FASTQ
+        |
+        v
+Minimap2
+Full-genome alignment to hg38
+        |
+        v
+SAM / BAM
+        |
+        v
+SAMtools
+Coordinate sorting + indexing
+        |
+        v
+Read-group assignment
+        |
+        v
+GATK HaplotypeCaller
+        |
+        v
+GVCF
+        |
+        v
+GATK GenotypeGVCFs
+        |
+        v
+Genome-wide VCF
+        |
+        v
+ANNOVAR
+Functional annotation
+        |
+        v
+PGx-associated variant extraction
+        |
+        v
+Selected CYP-gene analysis + IGV inspection
+```
+
+---
+
+## Tools
+
+| Tool           | Role in analysis                                                 |
+| -------------- | ---------------------------------------------------------------- |
+| **Minimap2**   | PacBio HiFi read alignment to hg38                               |
+| **SAMtools**   | Alignment processing, sorting, indexing, and read-group handling |
+| **GATK4**      | Germline variant calling and genotyping                          |
+| **ANNOVAR**    | Gene-based and clinical variant annotation                       |
+| **IGV**        | Visual inspection of genomic alignments and loci                 |
+| **Bash/Linux** | Pipeline automation, filtering, and result processing            |
+
+---
+
+## Variant Calling and Annotation
+
+PacBio HiFi reads were aligned to the complete hg38 reference genome using the Minimap2 `map-hifi` preset.
+
+The alignments were coordinate-sorted with SAMtools, read-group information was added for downstream GATK processing, and the final BAM was indexed.
+
+Germline variant calling was performed using **GATK HaplotypeCaller** in GVCF mode. **GenotypeGVCFs** was then used to produce a genotyped VCF containing SNVs and indels.
+
+The resulting variants were functionally annotated with **ANNOVAR**.
+
+The end-to-end workflow is documented in:
+
+```text
+scripts/run_pgx_pipeline.sh
+```
+
+Individual processing stages are also provided as separate scripts for transparency.
+
+---
+
+## Pharmacogene-Focused Analysis
+
+Following genome-wide variant calling and ANNOVAR annotation, the annotated VCF was filtered for records associated with nine selected CYP pharmacogenes.
+
+The extraction is implemented in:
+
+```text
+scripts/extract_pgx_variants.sh
+```
+
+The analysis identified **532 unique VCF records associated with at least one of the nine selected CYP genes**.
+
+### Annotated Records by Gene
+
+| Gene    | Annotated records |
+| ------- | ----------------: |
+| CYP1A2  |                40 |
+| CYP2B6  |                74 |
+| CYP2C8  |               129 |
+| CYP2C9  |               119 |
+| CYP2C19 |                73 |
+| CYP2D6  |                 4 |
+| CYP3A4  |                34 |
+| CYP3A5  |                13 |
+| CYP4F2  |                74 |
+
+Per-gene counts do not sum to 532 because an individual ANNOVAR record can be associated with more than one gene.
+
+The filtered records and summary are available in:
+
+```text
+results/pgx_variants.vcf
+results/pgx_variant_summary.tsv
+```
+
+---
+
+## CYP2D6 / CYP2D7 Locus
+
+The **CYP2D6/CYP2D7 region** was inspected because it represents a challenging pharmacogenomic locus with substantial sequence homology.
+
+Four ANNOVAR records in the selected-gene analysis were associated with both **CYP2D6 and CYP2D7**. These records occurred on the alternate reference contig:
+
+```text
+chr22_KB663609v1_alt
+```
+
+The four records included two synonymous and two nonsynonymous SNVs.
+
+No CYP2D6-annotated records were identified on canonical `chr22` using the same annotation-filtering approach.
+
+Because the observed records occur on an alternate contig and are jointly annotated to CYP2D6 and CYP2D7, they are **not interpreted here as unambiguous CYP2D6-specific variants or star alleles**.
+
+IGV was used for visual inspection of the locus.
+
+![CYP2D6 locus visualization](images/cyp2d6_variant.png)
+
+This observation illustrates an important challenge when analyzing highly homologous pharmacogenomic loci.
 
 ---
 
 ## Repository Structure
+
+```text
 pacbio-pgx-pipeline/
-├── scripts/
-│   └── run_pgx_pipeline.sh          # Full automated bash execution script
-├── results/
-│   └── sample_annovar_output.vcf    # Verification snippet of annotated VCF output
+├── README.md
+├── .gitignore
+│
+├── data/
+│   └── sample_info.txt
+│
 ├── images/
-│   └── cyp2d6_variant.png           # IGV alignment visualization screenshot
-└── README.md                        # Project documentation
-
-
----
-
-## Key Pipeline Outputs
-
-| File Name | Format | Location / Context | Description |
-| :--- | :--- | :--- | :--- |
-| `run_pgx_pipeline.sh` | Shell | `scripts/` | Executable bash script containing end-to-end commands |
-| `HG00276_final.bam` | BAM | Local Execution | Read-group labeled BAM file ready for IGV alignment inspection |
-| `HG00276_final_variants.vcf` | VCF | Local Execution | Finalized variant call file generated by GATK4 |
-| `sample_annovar_output.vcf` | VCF | `results/` | Verification snippet containing ANNOVAR functional annotations |
-| `cyp2d6_variant.png` | PNG | `images/` | Visual proof of HiFi read alignment over the *CYP2D6* locus in IGV |
+│   └── cyp2d6_variant.png
+│
+├── results/
+│   ├── pgx_variant_summary.tsv
+│   └── pgx_variants.vcf
+│
+└── scripts/
+    ├── extract_pgx_variants.sh
+    ├── run_alignment.sh
+    ├── run_post_alignment.sh
+    ├── run_variant_calling.sh
+    └── run_pgx_pipeline.sh
+```
 
 ---
 
-## Visual Validation (IGV)
-Below is the visual verification of PacBio HiFi reads aligned over the *CYP2D6* region. Long reads spanning the region confirm high-confidence alignment without mapping ambiguity from neighboring pseudogenes (*CYP2D7*):
+## Key Results
 
-![CYP2D6 IGV Validation](images/cyp2d6_variant.png)
+* Implemented a **full-genome PacBio HiFi alignment and variant-calling workflow** against hg38.
+* Automated long-read alignment and BAM processing using Minimap2 and SAMtools.
+* Performed germline variant calling using GATK HaplotypeCaller and GenotypeGVCFs.
+* Annotated genome-wide variants using ANNOVAR.
+* Extracted **532 unique records associated with nine selected CYP pharmacogenes**.
+* Generated reproducible per-gene variant summaries.
+* Investigated the complex CYP2D6/CYP2D7 region and documented ambiguity associated with alternate-contig annotation.
+* Organized scripts, representative results, metadata, and visualization into a reproducible GitHub project.
 
 ---
 
-## Summary of Results
-The pipeline successfully identified and functionally annotated variants across the 49 target PGx genes. Utilizing PacBio long-read technology enabled clear read mapping and variant identification in complex loci like *CYP2D6*, overcoming the mapping challenges common in short-read datasets.
+## Limitations
+
+This project is an **educational and portfolio bioinformatics analysis**, not a validated clinical pharmacogenomics pipeline.
+
+Important limitations include:
+
+* Although the sequencing panel targets 49 pharmacogenes, the current summarized downstream analysis focuses on nine CYP genes.
+* ANNOVAR gene association does not by itself establish pathogenicity or clinical significance.
+* The reported counts represent annotated VCF records associated with the selected genes, not independently validated clinically actionable variants.
+* CYP2D6/CYP2D7 is a highly homologous genomic region requiring specialized approaches for definitive locus-specific interpretation.
+* CYP star alleles, diplotypes, metabolizer phenotypes, and clinical drug-response recommendations were not assigned.
+* The workflow has not been validated for clinical diagnostic use.
+
+---
+
+## Skills Demonstrated
+
+**Long-read genomics:** PacBio HiFi, human genome alignment, variant analysis
+**Bioinformatics tools:** Minimap2, SAMtools, GATK4, ANNOVAR, IGV
+**Data formats:** FASTQ, SAM, BAM, GVCF, VCF
+**Computational skills:** Bash scripting, Linux command line, pipeline automation, genomic data filtering
+**Domain:** Pharmacogenomics, germline variant analysis, human genomics
+
+---
+
+## Project Context
+
+This project was developed as an extension of coursework in **Genomic Sequencing Technologies at UC San Diego Extended Studies**.
+
+The original course exercise focused on chromosome 10 and CYP2C9/CYP2C19. The instructor subsequently recommended extending the analysis to the complete human genome using PacBio HiFi reads generated from the Twist Alliance Long-Read Pharmacogenomics Panel.
+
+This repository documents that full-genome extension and subsequent focused pharmacogene analysis.

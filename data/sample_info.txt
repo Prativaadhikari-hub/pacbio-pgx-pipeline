@@ -1,0 +1,8 @@
+Sample: HG00276
+Sequencing platform: PacBio HiFi / CCS
+Dataset: Twist Alliance Long-Read Pharmacogenomics Panel
+Reference genome: GRCh38 / hg38
+Analysis: Full-genome alignment, germline variant calling, ANNOVAR annotation, and selected CYP pharmacogene analysis
+
+Note:
+The original FASTQ, hg38 reference genome, BAM files, and complete genome-wide variant files are not included in this repository because of their size.

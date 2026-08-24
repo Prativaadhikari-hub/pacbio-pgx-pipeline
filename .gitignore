@@ -1,18 +1,35 @@
-data/
-reference/
-results/
-logs/
+# Large sequencing data
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+
+# Alignment files
+*.sam
 *.bam
 *.bai
-*.vcf
+
+# Large compressed files
 *.gz
-# Ignore heavy tool folders
+
+# Reference genome files
+reference/
+
+# Local software/tool installations
 tools/
 minimap2/
 
-# Ignore giant genomic data
-data/
-reference/
+# Logs
+logs/
+*.log
 
-# Ignore temporary logs
-logs/*.log
+# Ignore large intermediate files inside data/
+data/*
+!data/sample_info.txt
+
+# Ignore large/intermediate results by default
+results/*
+
+# Keep representative portfolio results
+!results/pgx_variant_summary.tsv
+!results/pgx_variants.vcf

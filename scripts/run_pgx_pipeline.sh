@@ -1,35 +1,100 @@
-#!/bin/bash
-# Twist Alliance Long-Read PGx Pipeline
-# Target: 49 Pharmacogenomic Genes (CYP2D6, CYP2C19, etc.)
+#!/usr/bin/env bash
 
-# 1. Alignment with Minimap2 (HiFi Preset)
-minimap2 -ax map-hifi ../reference/hg38.fa ../data/HG00276.fastq.gz | \
-samtools sort -@ 4 -o ../data/HG00276_sorted.bam
+set -euo pipefail
 
-# 2. Add Read Groups & Index (Crucial for GATK)
-samtools addreplacerg -r "@RG\tID:1\tPL:PACBIO\tLB:TwistPGx\tSM:HG00276\tPU:1" \
-  -o ../data/HG00276_final.bam ../data/HG00276_sorted.bam
-samtools index ../data/HG00276_final.bam
+# PacBio HiFi Full-Genome PGx Variant Analysis
+# Sample: HG00276
+#
+# Workflow:
+# PacBio HiFi FASTQ -> Minimap2 -> sorted BAM -> read groups
+# -> GATK HaplotypeCaller -> GenotypeGVCFs -> ANNOVAR
+#
+# The sequencing dataset was generated using the Twist Alliance
+# Long-Read Pharmacogenomics Panel. Variant calling is performed
+# against the complete hg38 reference genome.
 
-# 3. GATK HaplotypeCaller (GVCF Mode)
-/home/prativaadhikari75/projects/pacbio-pgx-pipeline/tools/gatk-4.6.2.0/gatk --java-options "-Xmx12g" HaplotypeCaller \
-  -R ../reference/hg38.fa \
-  -I ../data/HG00276_final.bam \
-  -O ../results/HG00276_raw_variants.g.vcf \
-  -ERC GVCF
+SAMPLE="HG00276"
 
-# 4. Final Genotyping
-/home/prativaadhikari75/projects/pacbio-pgx-pipeline/tools/gatk-4.6.2.0/gatk --java-options "-Xmx4g" GenotypeGVCFs \
-  -R ../reference/hg38.fa \
-  -V ../results/HG00276_raw_variants.g.vcf \
-  -O ../results/HG00276_final_variants.vcf
+READS="../data/${SAMPLE}.fastq.gz"
+REFERENCE="../reference/hg38.fa"
 
-# 5. Functional Variant Annotation with ANNOVAR
-table_annovar.pl ../results/HG00276_final_variants.vcf humandb/ \
-  -buildver hg38 \
-  -out ../results/HG00276_annotated \
-  -remove \
-  -protocol refGene,clinvar,dbnsfp42a \
-  -operation g,f,f \
-  -nastring . \
-  -vcfinput
+SORTED_BAM="../data/${SAMPLE}_sorted.bam"
+FINAL_BAM="../data/${SAMPLE}_final.bam"
+
+GVCF="../results/${SAMPLE}_raw_variants.g.vcf"
+VCF="../results/${SAMPLE}_final_variants.vcf"
+
+ANNOVAR_DB="../humandb"
+ANNOVAR_OUT="../results/${SAMPLE}_annotated"
+
+echo "Starting PacBio HiFi PGx analysis for ${SAMPLE}"
+echo "Start time: $(date)"
+
+# --------------------------------------------------
+# 1. Align PacBio HiFi reads to the complete hg38 genome
+# --------------------------------------------------
+
+echo "Aligning reads with Minimap2..."
+
+minimap2 -ax map-hifi "${REFERENCE}" "${READS}" | \
+    samtools sort -@ 4 -o "${SORTED_BAM}"
+
+# --------------------------------------------------
+# 2. Add read-group information
+# --------------------------------------------------
+
+echo "Adding read-group information..."
+
+samtools addreplacerg \
+    -r "@RG\tID:1\tPL:PACBIO\tLB:TwistPGx\tSM:${SAMPLE}\tPU:1" \
+    -o "${FINAL_BAM}" \
+    "${SORTED_BAM}"
+
+# --------------------------------------------------
+# 3. Index BAM
+# --------------------------------------------------
+
+echo "Indexing BAM..."
+
+samtools index "${FINAL_BAM}"
+
+# --------------------------------------------------
+# 4. Germline variant calling in GVCF mode
+# --------------------------------------------------
+
+echo "Running GATK HaplotypeCaller..."
+
+gatk --java-options "-Xmx12g" HaplotypeCaller \
+    -R "${REFERENCE}" \
+    -I "${FINAL_BAM}" \
+    -O "${GVCF}" \
+    -ERC GVCF
+
+# --------------------------------------------------
+# 5. Convert GVCF to genotyped VCF
+# --------------------------------------------------
+
+echo "Running GATK GenotypeGVCFs..."
+
+gatk --java-options "-Xmx4g" GenotypeGVCFs \
+    -R "${REFERENCE}" \
+    -V "${GVCF}" \
+    -O "${VCF}"
+
+# --------------------------------------------------
+# 6. Functional annotation with ANNOVAR
+# --------------------------------------------------
+
+echo "Annotating variants with ANNOVAR..."
+
+table_annovar.pl "${VCF}" "${ANNOVAR_DB}" \
+    -buildver hg38 \
+    -out "${ANNOVAR_OUT}" \
+    -remove \
+    -protocol refGene,clinvar,dbnsfp42a \
+    -operation g,f,f \
+    -nastring . \
+    -vcfinput
+
+echo "Pipeline completed successfully."
+echo "Finish time: $(date)"
